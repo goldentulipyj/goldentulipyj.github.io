@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>셔틀 운행 계획</title>
+        <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 1100px;
+                margin: 0 auto;
+                padding: 10px;
+            }
+            .header {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+            .logo {
+                width: 50px;
+                height: auto;
+            }
+            #currentDate {
+                font-size: 28px;
+                font-weight: bold;
+            }
+            h1 {
+                font-size: 24px;
+                margin: 10px 0;
+            }
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                margin-bottom: 14px;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 5px;
+                text-align: center;
+                font-size: 12px;
+            }
+            th {
+                background-color: #0c177a;
+                color: white;
+            }
+
+            
+            input[type="number"] {
+                width: 25px;
+                text-align: center;
+                -moz-appearance: textfield;
+                border: 1px solid #ddd; /* 여기서 외곽선 두께와 색상을 지정합니다 */
+                padding: 4px; /* 내부 여백을 조절합니다 */                
+            }
+
+            .luggage input[type="number"] {
+                width: 30px;
+                color: #888;
+                border: 1px solid #eee; /* 러기지 입력란의 외곽선을 더 연하게 설정합니다 */
+            }
+
+            input::-webkit-outer-spin-button,
+            input::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+            .spinner {
+                display: inline-flex;
+                align-items: center;
+            }
+            .spinner button {
+                width: 16px;
+                height: 16px;
+                padding: 0;
+                margin: 0 2px;
+                font-size: 15px;
+                color: white;
+                border: none;
+                cursor: pointer;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .spinner button.up {
+                background-color: #FFB3BA;
+            }
+            .spinner button.down {
+                background-color: #85E3FF;
+            }
+            tr:nth-child(even) {
+                background-color: #f3f3f3;
+            }
+            .note {
+                width: 15%;
+            }
+            input.gray {
+            background-color: #dbdbdb;
+            }
+            input.green {
+                background-color: #cafdca;
+            }
+            input.blue {
+                background-color: #c5eaf7;
+            }
+            input.orange {
+                background-color: #f3bbbb;
+            }
+            tr.current-time {
+                background-color: #93b7fc !important; /* 밝은 노란색 */
+            }
+            #exportBtn {
+                padding: 10px 20px;
+                font-size: 16px;
+                background-color: #373d70;
+                color: white;
+                border: none;
+                cursor: pointer;
+                margin-top: 10px;
+            }
+            
+            button {
+                padding: 10px 15px;
+                font-size: 14px;
+                cursor: pointer;
+                border: none;
+                border-radius: 5px;
+                color: white;
+                background-color: #4CAF50;
+                margin: 0 5px;
+            }
+
+            
+                #deleteAllBtn { background-color: #f44336; }
+                #saveBtn { background-color: #2196F3; }
+                #driverModeBtn { background-color: #FF9800; }
+            @media screen and (max-width: 768px) {
+                body { padding: 5px; }
+                .header { flex-direction: column; align-items: flex-start; }
+                .logo { margin-bottom: 10px; }
+                #currentDate { font-size: 16px; }
+                h1 { font-size: 20px; }
+                table { font-size: 10px; }
+                th, td { padding: 3px; }
+                .spinner button { width: 20px; height: 20px; font-size: 14px; }
+                input[type="number"] { width: 25px; }
+                #exportBtn { padding: 8px 16px; font-size: 14px; }
+            }
+    
+            @media screen and (max-width: 480px) {
+                .header { text-align: center; }
+                table { font-size: 8px; }
+                th, td { padding: 2px; }
+                .spinner button { width: 18px; height: 18px; font-size: 12px; }
+                input[type="number"] { width: 20px; }
+            }
+            input[type="number"][value="0"] {
+        color: transparent;
+            }
+            .popup {
+                display: none;
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: white;
+                padding: 20px;
+                border: 1px solid black;
+                z-index: 1000;
+                text-align: center;
+            }
+                .popup button {
+                    margin: 10px;
+                    padding: 5px 15px;
+            }
+        </style>
+    </head>
+<body>
+    <div class="header">
+        <img src="logo.png" alt="Logo" class="logo">
+        <div id="currentDate"></div>
+        <h1>셔틀 운행 계획</h1>
+        <div>
+            <button id="deleteAllBtn">모두삭제</button>
+            <button id="saveBtn">저장</button>
+            <button id="driverModeBtn" onclick="window.location.href='driver.html'">운전모드</button>
+            <button id="exportBtn">엑셀로 변환</button>
+    </div>
+    </div>
+
+    
+
+        <div id="deletePopup" class="popup">
+            <p>정말, 모두 삭제하시겠습니까?</p>
+            <div>
+                <button id="confirmDelete">네</button>
+                <button id="cancelDelete">아니오</button>
+            </div>
+        </div>
+
+    <table id="inputTable">
+        <thead>
+            <tr>
+                <th style="width: 8%;">시간</th>
+                <th colspan="2" style="width: 18%;">T2 샌딩</th>
+                <th colspan="2" style="width: 18%;">T1 샌딩</th>
+                <th colspan="2" style="width: 18%;">T2 픽업</th>
+                <th colspan="2" style="width: 18%;">T1 픽업</th>
+                <th class="note">비고</th>
+            </tr>
+            <tr>
+                <th></th>
+                <th>인원</th>
+                <th>러기지</th>
+                <th>인원</th>
+                <th>러기지</th>
+                <th>인원</th>
+                <th>러기지</th>
+                <th>인원</th>
+                <th>러기지</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="inputTableBody">
+            <!-- JavaScript will populate this -->
+        </tbody>
+    </table>
+
+    <script>
+        function createSpinner(initialValue = 0) {
+            const container = document.createElement('div');
+            container.className = 'spinner';
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.value = initialValue;
+            input.min = 0;
+            input.oninput = updateColor;
+            const upButton = document.createElement('button');
+            upButton.textContent = '+';
+            upButton.className = 'up';
+            upButton.onclick = () => {
+                input.value = parseInt(input.value) + 1;
+                updateColor.call(input);
+            };
+            const downButton = document.createElement('button');
+            downButton.textContent = '-';
+            downButton.className = 'down';
+            downButton.onclick = () => {
+                input.value = Math.max(0, parseInt(input.value) - 1);
+                updateColor.call(input);
+            };
+            container.appendChild(downButton);
+            container.appendChild(input);
+            container.appendChild(upButton);
+            return container;
+        }
+
+        function updateColor() {
+            const value = parseInt(this.value);
+            this.classList.remove('gray', 'green', 'blue', 'orange');
+            if (value >= 40) {
+                this.classList.add('orange');
+            } else if (value >= 20) {
+                this.classList.add('blue');
+            } else if (value >= 10) {
+                this.classList.add('green');
+            } else if (value >= 1) {
+                this.classList.add('gray');
+            }
+        }
+
+        function createTable() {
+    const inputTableBody = document.getElementById('inputTableBody');
+
+    for (let hour = 6; hour <= 22; hour++) {
+        const row = document.createElement('tr');
+        row.id = `row-${hour}`;
+        
+        const timeCell = document.createElement('td');
+        timeCell.textContent = `${hour.toString().padStart(2, '0')}시`;
+        row.appendChild(timeCell);
+
+        if (hour === 12) {
+            const lunchCell = document.createElement('td');
+            lunchCell.colSpan = 9;
+            lunchCell.textContent = '🍚🍚🍚 점 심 시 간 🍚🍚🍚';
+            lunchCell.style.textAlign = 'center';
+            lunchCell.style.fontWeight = 'bold';
+            
+            row.appendChild(lunchCell);
+        } else {
+            for (let i = 0; i < 8; i++) {
+                const cell = document.createElement('td');
+                cell.appendChild(createSpinner(0));
+                row.appendChild(cell);
+            }
+
+            const noteCell = document.createElement('td');
+            noteCell.className = 'note';
+            noteCell.contentEditable = true;
+            row.appendChild(noteCell);
+        }
+
+        inputTableBody.appendChild(row);
+    }
+
+    inputTableBody.addEventListener('paste', handlePaste);
+    highlightCurrentTime();
+    setInterval(highlightCurrentTime, 60000);
+}
+
+        function handlePaste(e) {
+            e.preventDefault();
+            const clipboardData = e.clipboardData || window.clipboardData;
+            const pastedData = clipboardData.getData('text');
+            const rows = pastedData.split(/\r\n|\n|\r/);
+            const target = e.target.closest('td');
+            const startRow = target.parentElement.rowIndex - 2;
+            const startCol = target.cellIndex;
+
+            rows.forEach((row, i) => {
+                const cells = row.split('\t');
+                cells.forEach((cell, j) => {
+                    const currentRow = this.rows[startRow + i];
+                    if (currentRow) {
+                        const currentCell = currentRow.cells[startCol + j];
+                        if (currentCell) {
+                            const input = currentCell.querySelector('input');
+                            if (input) {
+                                const numValue = parseFloat(cell.trim());
+                                if (!isNaN(numValue)) {
+                                    input.value = numValue;
+                                    updateColor.call(input);
+                                }
+                            } else if (currentCell.classList.contains('note')) {
+                                currentCell.textContent = cell.trim();
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function highlightCurrentTime() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            
+            const previousHighlight = document.querySelector('tr.current-time');
+            if (previousHighlight) {
+                previousHighlight.classList.remove('current-time');
+            }
+
+            if (currentHour >= 6 && currentHour <= 22) {
+                const currentRow = document.getElementById(`row-${currentHour}`);
+                if (currentRow) {
+                    currentRow.classList.add('current-time');
+                }
+            }
+        }
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+            const weekday = weekdays[now.getDay()];
+            document.getElementById('currentDate').textContent = `${month}.${day} (${weekday})`;
+        }
+
+        function exportToExcel() {
+            const table = document.getElementById('inputTable');
+            const ws = XLSX.utils.table_to_sheet(table, {raw: true});
+
+            // Remove spinner buttons from Excel
+            for (let cell in ws) {
+                if (ws[cell].v && typeof ws[cell].v === 'string') {
+                    ws[cell].v = ws[cell].v.replace(/[+-]/g, '');
+                }
+            }
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "셔틀운행계획");
+
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            const fileName = `${year}${month}${day}_셔틀.xlsx`;
+
+            XLSX.writeFile(wb, fileName);
+        }
+
+function updateInputVisibility(input) {
+    var value = parseInt(input.value);
+    if (value === 0) {
+        input.style.color = 'transparent';
+        input.style.backgroundColor = 'white'; // 0일 때 흰색 배경
+    } else {
+        input.style.color = 'black';
+        if (value >= 40) {
+            input.style.backgroundColor = '#f3bbbb'; // 오렌지색
+        } else if (value >= 20) {
+            input.style.backgroundColor = '#85E3FF'; // 연한 파란색
+        } else if (value >= 10) {
+            input.style.backgroundColor = '#cafdca'; // 연한 녹색
+        } else {
+            input.style.backgroundColor = '#dbdbdb'; // 연한 회색
+        }
+    }
+}
+
+document.getElementById('saveBtn').addEventListener('click', function() {
+    var inputs = document.querySelectorAll('input[type="number"]');
+    var savedData = {};
+    inputs.forEach(function(input, index) {
+        savedData['input' + index] = input.value;
+    });
+    localStorage.setItem('shuttleData', JSON.stringify(savedData));
+    alert('데이터가 저장되었습니다!');
+});
+
+window.addEventListener('load', function() {
+    var savedData = localStorage.getItem('shuttleData');
+    if (savedData) {
+        savedData = JSON.parse(savedData);
+        var inputs = document.querySelectorAll('input[type="number"]');
+        inputs.forEach(function(input, index) {
+            if (savedData['input' + index]) {
+                input.value = savedData['input' + index];
+            }
+        });
+    }
+});
+
+function updateAllInputs() {
+    var inputs = document.querySelectorAll('input[type="number"]');
+    inputs.forEach(updateInputVisibility);
+}
+
+document.getElementById('deleteAllBtn').addEventListener('click', function() {
+    document.getElementById('deletePopup').style.display = 'block';
+});
+
+document.getElementById('confirmDelete').addEventListener('click', function() {
+    var inputs = document.querySelectorAll('input[type="number"]');
+    inputs.forEach(function(input) {
+        input.value = '0';
+        updateInputVisibility(input);
+    });
+    document.getElementById('deletePopup').style.display = 'none';
+});
+
+document.getElementById('cancelDelete').addEventListener('click', function() {
+    document.getElementById('deletePopup').style.display = 'none';
+});
+
+document.addEventListener('input', function(e) {
+    if (e.target.type === 'number') {
+        updateInputVisibility(e.target);
+    }
+});
+
+document.addEventListener('mousedown', function(e) {
+    if (e.target.type === 'number') {
+        e.target.style.color = 'black';
+    }
+});
+
+document.addEventListener('change', function(e) {
+    if (e.target.type === 'number') {
+        updateInputVisibility(e.target);
+    }
+});
+
+// 페이지 로드 시 초기 상태 설정 및 주기적으로 업데이트
+window.addEventListener('load', function() {
+    updateAllInputs();
+    setInterval(updateAllInputs, 100); // 100ms마다 모든 입력란 업데이트
+});
+
+        createTable();
+        updateCurrentDate();
+        document.getElementById('exportBtn').addEventListener('click', exportToExcel);
+    </script>
+</body>
+</html>
